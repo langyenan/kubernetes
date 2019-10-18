@@ -69,8 +69,8 @@ type Manager interface {
 	CleanupPods(desiredPods map[types.UID]sets.Empty)
 
 	// UpdatePodStatus modifies the given PodStatus with the appropriate Ready state for each
-	// container based on container running status, cached probe results and worker states.
-	UpdatePodStatus(types.UID, *v1.PodStatus)
+	// container based on container running status, cached probe results, previous readiness results and worker states.
+	UpdatePodStatus(types.UID, *v1.PodStatus, map[string]bool)
 
 	// Start starts the Manager sync loops.
 	Start()
@@ -234,14 +234,17 @@ func (m *manager) CleanupPods(desiredPods map[types.UID]sets.Empty) {
 	}
 }
 
-func (m *manager) UpdatePodStatus(podUID types.UID, podStatus *v1.PodStatus) {
+func (m *manager) UpdatePodStatus(podUID types.UID, podStatus *v1.PodStatus, oldContainerReadiness map[string]bool) {
 	for i, c := range podStatus.ContainerStatuses {
 		var ready bool
 		if c.State.Running == nil {
 			ready = false
 		} else if result, ok := m.readinessManager.Get(kubecontainer.ParseContainerID(c.ContainerID)); ok {
 			ready = result == results.Success
-		} else {
+		} else if stat, ok := oldContainerReadiness[c.ContainerID]; ok{
+			// keep the ready intact for previously running container, this is a fix to issue #78733
+			ready = stat
+		}else {
 			// The check whether there is a probe which hasn't run yet.
 			_, exists := m.getWorker(podUID, c.Name, readiness)
 			ready = !exists
