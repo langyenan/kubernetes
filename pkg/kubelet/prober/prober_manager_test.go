@@ -235,6 +235,14 @@ func TestUpdatePodStatus(t *testing.T) {
 			Running: &v1.ContainerStateRunning{},
 		},
 	}
+	unprobedReady := v1.ContainerStatus{
+		Name:        "unprobed_ready_container",
+		ContainerID: "test://unprobed_ready_container_id",
+		State: v1.ContainerState{
+			Running: &v1.ContainerStateRunning{},
+		},
+		Ready: true,
+	}
 	probedReady := v1.ContainerStatus{
 		Name:        "probed_container_ready",
 		ContainerID: "test://probed_container_ready_id",
@@ -266,7 +274,7 @@ func TestUpdatePodStatus(t *testing.T) {
 	podStatus := v1.PodStatus{
 		Phase: v1.PodRunning,
 		ContainerStatuses: []v1.ContainerStatus{
-			unprobed, probedReady, probedPending, probedUnready, terminated,
+			unprobed, unprobedReady, probedReady, probedPending, probedUnready, terminated,
 		},
 	}
 
@@ -276,6 +284,7 @@ func TestUpdatePodStatus(t *testing.T) {
 	// Setup probe "workers" and cached results.
 	m.workers = map[probeKey]*worker{
 		{testPodUID, unprobed.Name, liveness}:       {},
+		{testPodUID, unprobedReady.Name, readiness}: {},
 		{testPodUID, probedReady.Name, readiness}:   {},
 		{testPodUID, probedPending.Name, readiness}: {},
 		{testPodUID, probedUnready.Name, readiness}: {},
@@ -285,10 +294,20 @@ func TestUpdatePodStatus(t *testing.T) {
 	m.readinessManager.Set(kubecontainer.ParseContainerID(probedUnready.ContainerID), results.Failure, &v1.Pod{})
 	m.readinessManager.Set(kubecontainer.ParseContainerID(terminated.ContainerID), results.Success, &v1.Pod{})
 
-	m.UpdatePodStatus(testPodUID, &podStatus)
+	originReadiness := map[string]bool{
+		unprobed.ContainerID: false,
+		unprobedReady.ContainerID: true,
+		probedReady.ContainerID: false,
+		probedPending.ContainerID: false,
+		probedUnready.ContainerID: false,
+		terminated.ContainerID: false,
+	}
+
+	m.UpdatePodStatus(testPodUID, &podStatus, originReadiness)
 
 	expectedReadiness := map[probeKey]bool{
-		{testPodUID, unprobed.Name, readiness}:      true,
+		{testPodUID, unprobed.Name, readiness}:      false,
+		{testPodUID, unprobedReady.Name, readiness}: true,
 		{testPodUID, probedReady.Name, readiness}:   true,
 		{testPodUID, probedPending.Name, readiness}: false,
 		{testPodUID, probedUnready.Name, readiness}: false,
