@@ -40,7 +40,7 @@ func (FakeManager) CleanupPods(_ map[types.UID]sets.Empty) {}
 func (FakeManager) Start() {}
 
 // UpdatePodStatus simulates updating the Pod Status.
-func (FakeManager) UpdatePodStatus(_ types.UID, podStatus *v1.PodStatus) {
+func (FakeManager) UpdatePodStatus(_ types.UID, podStatus *v1.PodStatus, oldRadiness map[string]bool) {
 	for i := range podStatus.ContainerStatuses {
 		podStatus.ContainerStatuses[i].Ready = true
 	}
