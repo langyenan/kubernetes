@@ -239,12 +239,15 @@ func (m *manager) UpdatePodStatus(podUID types.UID, podStatus *v1.PodStatus) {
 		var ready bool
 		if c.State.Running == nil {
 			ready = false
+			klog.Infof("set container %s/%s readiness to %v", c.Name, c.ContainerID, ready)
 		} else if result, ok := m.readinessManager.Get(kubecontainer.ParseContainerID(c.ContainerID)); ok {
 			ready = result == results.Success
+			klog.Infof("set container %s/%s readiness to %v", c.Name, c.ContainerID, ready)
 		} else {
 			// The check whether there is a probe which hasn't run yet.
 			_, exists := m.getWorker(podUID, c.Name, readiness)
 			ready = !exists
+			klog.Infof("set container %s/%s readiness to %v", c.Name, c.ContainerID, ready)
 		}
 		podStatus.ContainerStatuses[i].Ready = ready
 
