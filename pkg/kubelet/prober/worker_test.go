@@ -288,9 +288,9 @@ func expectResult(t *testing.T, w *worker, expectedResult results.Result, msg st
 
 func expectResultExistence(t *testing.T, w *worker, expectExist bool) {
 	_, ok := resultsManager(w.probeManager, w.probeType).Get(w.containerID)
-	if expectExist && !ok{
+	if expectExist && !ok {
 		t.Errorf("[%s] Expected result to be set, but was not set", w.probeType)
-	}else if !expectExist && ok{
+	} else if !expectExist && ok {
 		t.Errorf("[%s] Expected result not to be set, but was set", w.probeType)
 	}
 }
@@ -477,7 +477,7 @@ func TestStartupProbeDisabledByStarted(t *testing.T) {
 	expectResult(t, w, results.Success, msg)
 }
 
-func TestReadinessProbeOnKubeletRestart(t *testing.T){
+func TestReadinessProbeOnKubeletRestart(t *testing.T) {
 	m := newTestManager()
 	w := newTestWorker(m, readiness, v1.Probe{SuccessThreshold: 1, FailureThreshold: 2})
 	m.prober.exec = fakeExecProber{probe.Failure, nil}

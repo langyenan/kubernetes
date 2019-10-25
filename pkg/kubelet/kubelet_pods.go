@@ -1352,13 +1352,8 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 			s.Phase = pod.Status.Phase
 		}
 	}
-	oldContainerReadiness := make(map[string]bool)
-	if p, found := kl.podManager.GetPodByName(pod.Namespace, pod.Name); found{
-		for _, c := range p.Status.ContainerStatuses{
-			oldContainerReadiness[c.ContainerID] = c.Ready
-		}
-	}
-	kl.probeManager.UpdatePodStatus(pod.UID, s, oldContainerReadiness)
+
+	kl.probeManager.UpdatePodStatus(pod.UID, s)
 	s.Conditions = append(s.Conditions, status.GeneratePodInitializedCondition(spec, s.InitContainerStatuses, s.Phase))
 	s.Conditions = append(s.Conditions, status.GeneratePodReadyCondition(spec, s.Conditions, s.ContainerStatuses, s.Phase))
 	s.Conditions = append(s.Conditions, status.GenerateContainersReadyCondition(spec, s.ContainerStatuses, s.Phase))
@@ -1464,6 +1459,9 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		switch cs.State {
 		case kubecontainer.ContainerStateRunning:
 			status.State.Running = &v1.ContainerStateRunning{StartedAt: metav1.NewTime(cs.StartedAt)}
+			if pc, found := podutil.GetContainerStatus(previousStatus, cs.Name); found && pc.ContainerID == cid {
+				status.Ready = pc.Ready
+			}
 		case kubecontainer.ContainerStateCreated:
 			// Treat containers in the "created" state as if they are exited.
 			// The pod workers are supposed start all containers it creates in
