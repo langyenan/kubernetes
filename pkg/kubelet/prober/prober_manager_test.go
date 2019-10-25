@@ -294,16 +294,7 @@ func TestUpdatePodStatus(t *testing.T) {
 	m.readinessManager.Set(kubecontainer.ParseContainerID(probedUnready.ContainerID), results.Failure, &v1.Pod{})
 	m.readinessManager.Set(kubecontainer.ParseContainerID(terminated.ContainerID), results.Success, &v1.Pod{})
 
-	originReadiness := map[string]bool{
-		unprobed.ContainerID: false,
-		unprobedReady.ContainerID: true,
-		probedReady.ContainerID: false,
-		probedPending.ContainerID: false,
-		probedUnready.ContainerID: false,
-		terminated.ContainerID: false,
-	}
-
-	m.UpdatePodStatus(testPodUID, &podStatus, originReadiness)
+	m.UpdatePodStatus(testPodUID, &podStatus)
 
 	expectedReadiness := map[probeKey]bool{
 		{testPodUID, unprobed.Name, readiness}:      false,

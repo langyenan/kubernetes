@@ -1352,13 +1352,9 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 			s.Phase = pod.Status.Phase
 		}
 	}
-	oldContainerReadiness := make(map[string]bool)
-	if p, found := kl.podManager.GetPodByName(pod.Namespace, pod.Name); found{
-		for _, c := range p.Status.ContainerStatuses{
-			oldContainerReadiness[c.ContainerID] = c.Ready
-		}
-	}
-	kl.probeManager.UpdatePodStatus(pod.UID, s, oldContainerReadiness)
+
+	klog.Infof("converted podStatus")
+	kl.probeManager.UpdatePodStatus(pod.UID, s)
 	s.Conditions = append(s.Conditions, status.GeneratePodInitializedCondition(spec, s.InitContainerStatuses, s.Phase))
 	s.Conditions = append(s.Conditions, status.GeneratePodReadyCondition(spec, s.Conditions, s.ContainerStatuses, s.Phase))
 	s.Conditions = append(s.Conditions, status.GenerateContainersReadyCondition(spec, s.ContainerStatuses, s.Phase))
@@ -1515,6 +1511,7 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 				// Apply some values from the old statuses as the default values.
 				status.RestartCount = oldStatus.RestartCount
 				status.LastTerminationState = oldStatus.LastTerminationState
+				status.Ready = oldStatus.Ready
 			}
 		}
 		statuses[container.Name] = status
