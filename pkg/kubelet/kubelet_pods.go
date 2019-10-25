@@ -19,6 +19,7 @@ package kubelet
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1352,6 +1353,9 @@ func (kl *Kubelet) generateAPIPodStatus(pod *v1.Pod, podStatus *kubecontainer.Po
 			s.Phase = pod.Status.Phase
 		}
 	}
+
+	statusBytes, _ := json.MarshalIndent(s,"", "  ")
+	klog.Infof("converted podStatus: %s", string(statusBytes))
 
 	kl.probeManager.UpdatePodStatus(pod.UID, s)
 	s.Conditions = append(s.Conditions, status.GeneratePodInitializedCondition(spec, s.InitContainerStatuses, s.Phase))
